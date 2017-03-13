@@ -1,0 +1,173 @@
+---
+title: "Coursera Statistical Inference Week4 Assignment"
+author: "JS"
+date: "March 13, 2017"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='figures/',warning=FALSE, message=FALSE,cache=TRUE)
+```
+
+# Question 1: 
+Investigate the exponential distribution in R and compare it with the CLT. Exponential distribution can be simulated in R with rexp(n,lambda) 
+where lambda is the rate parameter. The mean of exponential distribution is 1/lambda, and the SD is also 1/lambda. Set lambda = 0.2 for all the
+simulations, we'll investigate the distribution of average of 40 exponentials, and do a thousand simulations. 
+
+Illustrate the simulations and associated explanatory text the properties of the distribution of the mean of 40 exponentials. To do: 
+* Show the sample mean and compare it to the theoretical mean of the distribution.
+* Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution.
+* Show that the distribution is approximately normal.
+
+### Sample Mean vs Theoretical
+```{r Q1: Sample Mean}
+  
+  #Simulate a thousand mean of exponential distribution, with parameter lambda:0.20
+  #rexp generates random deviates of Exponential Distribution, the length of the result is determined by n parameter
+  set.seed(100)
+
+  lambda <- 0.2
+  nbSimulations <- 1000
+  nbPoints <- 40
+    
+      #Generate Matrix of 1000 Simulations of 40 points
+      exp_simulated <- replicate(n=nbSimulations,expr=rexp(n=40,rate=lambda))
+    
+      #Calculate Sample mean of Generated Data
+      exp_simulated_mean <- colMeans(exp_simulated)
+      simulated_mean <- mean(exp_simulated)
+      print(paste("The sample of mean of the 1000 Simulations is ",simulated_mean, " compared to the theoretical mean of ", 1/lambda ))
+
+```
+
+### Sample Variance vs Theoretical
+```{r Q2: Sample Variance}
+  
+  #Simulate a thousand mean of exponential distribution, with parameter lambda:0.20
+  #rexp generates random deviates of Exponential Distribution, the length of the result is determined by n parameter
+
+    
+      #Calculate Sample Stdev of Generated Data
+      simulated_Stdev <- sd(exp_simulated_mean)*sqrt(40)
+      print(paste("The sample SD of the 1000 Simulations is ",simulated_Stdev, " compared to the theoretical SD of ", 1/lambda ))
+
+```
+
+### Normal Distribution comparison 
+  We can observe on the below QQ plot that the sample Quantiles are very close to the theoretical, same as the Density function. 
+
+```{r Q3: Distribution}
+ #Plot Theoretical Quantiles vs Sample Quantiles
+  qqnorm(exp_simulated_mean);qqline(exp_simulated_mean,col=2)
+ #Distribution
+    #Theoretical 
+      x_theo <- seq(min(exp_simulated_mean),max(exp_simulated_mean),length=nbPoints)
+      y_theo <- dnorm(x_theo,mean=1/lambda,sd=(1/lambda/sqrt(nbPoints)))
+
+#Histogram 
+ hist(exp_simulated_mean,breaks=nbPoints,prob=T,col="orange",xlab = "means",ylab="density")
+ lines(x_theo,y_theo)
+                  
+```
+
+#Question 2: Basic Inferential Data Analysis
+
+Now in the second portion of the class, we're going to analyze the ToothGrowth data in the R datasets package. To do: 
+
+*Load the ToothGrowth data and perform some basic exploratory data analyses
+*Provide a basic summary of the data.
+*Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+*State your conclusions and the assumptions needed for your conclusions.
+
+
+```{r Data Analysis}
+  #Load Data set
+    data("ToothGrowth")
+
+  #Get Information about the data Set
+    ?ToothGrowth
+
+  #Here's what we can learn from the help page: 
+    #The response is the length of odontoblasts (cells responsible for tooth growth) 
+    #in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods,
+    #(orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+
+  #Show Type of DataSet
+    str(ToothGrowth)
+  #Show Sample
+    head(ToothGrowth)
+  #Summary 
+    summary(ToothGrowth)
+    
+  #View the histogram of length by dose, on each delivery methods  
+    ggplot(ToothGrowth,aes(x=len,fill=supp))+facet_wrap(~dose)+geom_histogram()
+    
+  #Performing T-test on each dose
+  
+```
+On the three histograms, we can observe that for 0.5 and 1mg/day doses it seems like Orange Juice treatment get higher length, whereas for 2mg/day Vitamin C gets higher.
+
+Now let's perform a T-Test analysis on supp: 
+
+```{r T-test performing}
+  d_05 <- ToothGrowth[ToothGrowth$dose=="0.5",]
+  t.test(data=d_05,len ~ supp,paired=FALSE,var.equal=FALSE)
+  
+  d_1 <- ToothGrowth[ToothGrowth$dose=="1",]
+  t.test(data=d_1,len ~ supp,paired=FALSE,var.equal=FALSE)
+  
+  d_2 <- ToothGrowth[ToothGrowth$dose=="2",]
+  t.test(data=d_2,len ~ supp,paired=FALSE,var.equal=FALSE)
+
+```
+
+* 0.5mg/day dose
+95% confidence interval does not contain zero, we can reject null hypothesis. The tooth growth for OJ is statistically significantly higher than VC treatment. 
+
+* 1mg/day dose 
+95% confidence interval does not contain zero, we can reject null hypothesis. The tooth growth for OJ is statistically significantly higher than VC treatment. 
+
+* 2mg/day dose 
+95% confidence interval contains zero, we can not reject the null hypothesis. Then, at the highest dose, there is no difference in tooth growth between two treatments. 
+
+Then, let's see if on each treatment the fact of increasing the dosage increase the tooth growth: 
+ OJ : 
+
+```{r T-test performing2}
+  OJ_Min <- ToothGrowth[ToothGrowth$dose=="0.5" & ToothGrowth$supp=="OJ",]
+  OJ_Med <- ToothGrowth[ToothGrowth$dose=="1" & ToothGrowth$supp=="OJ",]
+  OJ_Max <- ToothGrowth[ToothGrowth$dose=="2" & ToothGrowth$supp=="OJ",]
+  
+  #Compare Min with Med
+  t.test(OJ_Min$len,OJ_Med$len,paired=FALSE,var.equal = FALSE)
+  
+  #Compare Max with Med 
+  t.test(OJ_Max$len,OJ_Med$len,paired=FALSE,var.equal = FALSE)
+```
+* When comparing OJ treatment at 0.5 and 1 mg dosages, 95% confidence does not contain zero, then increasing the dosage of OJ increase tooth growth. 
+* When comparing OJ treatment at 1mg and 2 mg dosages, 95% confidence does not contain zero, then increasing the dosage of OJ increase tooth growth. 
+
+Let's do the same analysis on VC. 
+
+```{r T-test performing2}
+  VC_Min <- ToothGrowth[ToothGrowth$dose=="0.5" & ToothGrowth$supp=="VC",]
+  VC_Med <- ToothGrowth[ToothGrowth$dose=="1" & ToothGrowth$supp=="VC",]
+  VC_Max <- ToothGrowth[ToothGrowth$dose=="2" & ToothGrowth$supp=="VC",]
+  
+  #Compare Min with Med
+  t.test(VC_Min$len,VC_Med$len,paired=FALSE,var.equal = FALSE)
+  
+  #Compare Max with Med 
+  t.test(VC_Max$len,VC_Med$len,paired=FALSE,var.equal = FALSE)
+```
+
+* We can observe the same conclusion on VC treatment, with an increasing dosage of VC that increase tooth growth. 
+
+## Conclusion
+
+ * Both with VC and OJ treatment, the fact to increase the dosage significantly increase tooth growth.
+ * At 0.5 and 1mg dosages, OJ treatment have significantly higher tooth growth than VC
+ * At 2mg dosage, no significant different tooth growth 
+ 
+
+
